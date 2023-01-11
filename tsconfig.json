@@ -2,6 +2,7 @@
     "compilerOptions": {
         "outDir": "dist",
         "esModuleInterop": true,
-        "noImplicitAny": true
+        "noImplicitAny": true,
+        "strict": true,
     }
 }
