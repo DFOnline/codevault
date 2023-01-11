@@ -20,7 +20,7 @@ APP.post('/upload', auth, json(), (req, res) => {
     console.log(req.body);
     res.send();
 });
-APP.post('remove', auth, json(), (req, res) => {
+APP.post('/remove', auth, json(), (req, res) => {
     console.log(req.body.id);
     res.send();
 });
