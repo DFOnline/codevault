@@ -1,10 +1,12 @@
 import Express, { json, NextFunction, Request, Response } from 'express';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { existsSync, copyFileSync } from 'fs';
 
 const PORT = 8000;
 
-// const DB  = open({driver: sqlite3.Database, filename: '/dist/data.db'});
+// CREATE TABLE Templates (ID int NOT NULL PRIMARY KEY, Name varchar(32), Description varchar, Owner varchar(16), Icon varchar(32), Plot int, Rank int, Data varchar);
+const DB  = open({driver: sqlite3.Database, filename: './dist/data.db'});
 const APP = Express();
 
 APP.get('/', (_req, res) => {
