@@ -1,0 +1,19 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../dist/data.db"
+}
+
+model Templates {
+  ID          Int     @id
+  Name        String?
+  Description String?
+  Owner       String?
+  Icon        String?
+  Plot        Int?
+  Rank        Int?
+  Data        String?
+}
