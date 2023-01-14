@@ -1,4 +1,4 @@
-import Express, { json, NextFunction, Request, Response } from 'express';
+import Express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 
@@ -27,18 +27,18 @@ const TemplateSchema = z.object({
         version:    z.number().min(0),
         code:       z.string()
     })
-})
+});
 
 function auth(req : Request, res : Response, next : NextFunction) {
-    // if(!req.headers['user-agent'].endsWith('i forgor')) { res.status(403).send(); return; }
-    // if(req.ip !== '54.39.130.89') { res.status(403).send(); return; }
+    if(req.headers['user-agent']?.match(/DiamondFire\/\d.\d+ \(((21220)|(43780)), [a-zA-Z0-9_]{3,16}\)/) == null) { res.status(403).send(); return; }
+    if(!(req.ip === '::1' || req.ip.includes('54.39.29.75'))) { res.status(403).send(); return; }
     next();
 }
 APP.post('/upload', auth, json(), async (req, res) => {
     const template = TemplateSchema.safeParse(req.body);
     if(!template.success) { res.status(400).send(); return; }
     const {id: ID, name: Name, lore: Description, author: Owner, material: Icon, plotsize: Plot, rank: Rank, data } = template.data;
-    remove(ID);
+    await remove(ID);
     await DB.templates.create({data: {ID,Name,Description,Owner,Icon,Plot,Rank, Data: JSON.stringify(data)}});
     res.send();
 });
