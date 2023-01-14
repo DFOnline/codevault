@@ -43,7 +43,7 @@ APP.post('/upload', auth, json(), async (req, res) => {
     res.send();
 });
 APP.post('/remove', auth, json(), (req, res) => {
-    console.log(req.body.id);
+    remove(req.body.id);
     res.send();
 });
 
@@ -56,6 +56,10 @@ async function remove(id: number) {
         return false;
     }
 }
+
+process.on('uncaughtException', e => {
+    console.error(e);
+})
 
 APP.listen(PORT, () => {
     console.log(`App listening at port ${PORT}`);
