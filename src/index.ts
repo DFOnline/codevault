@@ -8,8 +8,36 @@ const PORT = 8000;
 const DB  = new PrismaClient();
 const APP = Express();
 
-APP.get('/', (_req, res) => {
-    res.send('ping');
+enum PlotSize {
+    "Basic",
+    "Large",
+    "Massive",
+}
+
+enum RankName {
+    "None",
+    "Noble",
+    "Mythic",
+    "Overlord",
+}
+
+APP.get('/', async (_req, res) => {
+    const data = await DB.templates.findMany();
+    res.send(Object.fromEntries(data.map(t => {
+        const {ID, Name: name, Description: description, Owner: owner, Icon: icon} = t;
+        const plot = PlotSize[t.Plot as number];
+        const rank = RankName[t.Rank as number];
+        return [ID, {name, description, owner, plot, rank, icon}]
+    })));
+});
+APP.get('/:id', urlencoded({'extended': true}), async (req,res) => {
+    const template = await DB.templates.findFirst({where: {ID: req.body.id}});
+    if(template == null) { res.status(404).send(); return; }
+    const {Name: name, Description: description, Owner: owner, Icon: icon} = template;
+    const plot = PlotSize[template.Plot as number];
+    const rank = RankName[template.Rank as number];
+    const data = JSON.parse(template.Data as string);
+    res.send({name,description,owner,icon,plot,rank,data});
 });
 
 const TemplateSchema = z.object({
