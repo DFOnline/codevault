@@ -4,7 +4,8 @@
   "description": "DiamondFire CodeVault as an API",
   "main": "dist/index.js",
   "scripts": {
-    "test": "tsc && node dist/index.js"
+    "test": "tsc && node dist/index.js",
+    "generate": "prisma generate && prisma migrate dev"
   },
   "repository": {
     "type": "git",
