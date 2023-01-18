@@ -7,7 +7,8 @@ const PORT = 8000;
 // CREATE TABLE Templates (ID int NOT NULL PRIMARY KEY, Name varchar(32), Description varchar, Owner varchar(16), Icon varchar(32), Plot int, Rank int, Data varchar);
 const DB  = new Sequelize({
     dialect: 'sqlite',
-    storage: './dist/test.db'
+    storage: './dist/data.db',
+    logging: false
 });
 const templates = DB.define('templates',{
     ID: {
@@ -22,15 +23,6 @@ const templates = DB.define('templates',{
     Rank: DataTypes.TINYINT,
 });
 await DB.sync();
-// await templates.create({
-//     ID: 100,
-//     Name: 'hi',
-//     Owner: 'grog',
-//     Icon: 'stone',
-//     Plot: 0,
-//     Rank: 0,
-//     Data: 'data and stuff'
-// })
 const APP = Express();
 
 enum PlotSize {
@@ -56,13 +48,16 @@ APP.get('/', async (_req, res) => {
     })));
 });
 APP.get('/:id', urlencoded({'extended': true}), async (req,res) => {
-    // const template = await DB.templates.findFirst({where: {ID: req.body.id}});
-    // if(template == null) { res.status(404).send(); return; }
-    // const {Name: name, Description: description, Owner: owner, Icon: icon} = template;
-    // const plot = PlotSize[template.Plot as number];
-    // const rank = RankName[template.Rank as number];
-    // const data = JSON.parse(template.Data as string);
-    // res.send({name,description,owner,icon,plot,rank,data});
+    const ID = req.params.id;
+    if(ID == null) { res.status(400).send('No ID'); return; }
+    const template = (await templates.findOne({where: {ID}}))?.get();
+    if(template == null) { res.status(404).send(); return; }
+    console.log(template);
+    const {Name: name, Description: description, Owner: owner, Icon: icon} = template;
+    const plot = PlotSize[template.Plot as number];
+    const rank = RankName[template.Rank as number];
+    const data = JSON.parse(template.Data as string);
+    res.send({name,description,owner,icon,plot,rank,data});
 });
 
 const TemplateSchema = z.object({
@@ -91,8 +86,8 @@ APP.post('/upload', auth, json(), async (req, res) => {
     const template = TemplateSchema.safeParse(req.body);
     if(!template.success) { res.status(400).send(); return; }
     const {id: ID, name: Name, lore: Description, author: Owner, material: Icon, plotsize: Plot, rank: Rank, data } = template.data;
-    await remove(ID);
-    // await DB.templates.create({data: {ID,Name,Description,Owner,Icon,Plot,Rank, Data: JSON.stringify(data)}});
+    // await remove(ID);
+    // await templates.create({ID,Name,Description,Owner,Icon,Plot,Rank, Data: JSON.stringify(data)});
     res.send();
 });
 APP.post('/remove', auth, json(), (req, res) => {
@@ -102,7 +97,7 @@ APP.post('/remove', auth, json(), (req, res) => {
 
 async function remove(id: number) {
     try {
-        // await DB.templates.delete({where: {ID: id}});
+        await templates.destroy({where: {ID: id}});
         return true;
     }
     catch {
