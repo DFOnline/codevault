@@ -5,8 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "test": "tsc && node dist/index.js",
-    "generate": "prisma generate && prisma migrate dev"
+    "test": "tsc && node dist/index.js"
   },
   "repository": {
     "type": "git",
