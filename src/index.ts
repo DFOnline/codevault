@@ -1,11 +1,36 @@
 import Express, { json, NextFunction, Request, Response, urlencoded } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Sequelize, DataTypes } from 'sequelize';
 import { z } from 'zod';
 
 const PORT = 8000;
 
 // CREATE TABLE Templates (ID int NOT NULL PRIMARY KEY, Name varchar(32), Description varchar, Owner varchar(16), Icon varchar(32), Plot int, Rank int, Data varchar);
-const DB  = new PrismaClient();
+const DB  = new Sequelize({
+    dialect: 'sqlite',
+    storage: './dist/test.db'
+});
+const templates = DB.define('templates',{
+    ID: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true
+    },
+    Name: DataTypes.STRING,
+    Owner: DataTypes.STRING,
+    Icon: DataTypes.STRING,
+    Plot: DataTypes.TINYINT,
+    Rank: DataTypes.TINYINT,
+});
+await DB.sync();
+// await templates.create({
+//     ID: 100,
+//     Name: 'hi',
+//     Owner: 'grog',
+//     Icon: 'stone',
+//     Plot: 0,
+//     Rank: 0,
+//     Data: 'data and stuff'
+// })
 const APP = Express();
 
 enum PlotSize {
@@ -22,22 +47,22 @@ enum RankName {
 }
 
 APP.get('/', async (_req, res) => {
-    const data = await DB.templates.findMany();
+    const data = await templates.findAll();
     res.send(Object.fromEntries(data.map(t => {
-        const {ID, Name: name, Description: description, Owner: owner, Icon: icon} = t;
-        const plot = PlotSize[t.Plot as number];
-        const rank = RankName[t.Rank as number];
+        const {ID, Name: name, Description: description, Owner: owner, Icon: icon} = t.get();
+        const plot = PlotSize[t.get().Plot as number];
+        const rank = RankName[t.get().Rank as number];
         return [ID, {name, description, owner, plot, rank, icon}]
     })));
 });
 APP.get('/:id', urlencoded({'extended': true}), async (req,res) => {
-    const template = await DB.templates.findFirst({where: {ID: req.body.id}});
-    if(template == null) { res.status(404).send(); return; }
-    const {Name: name, Description: description, Owner: owner, Icon: icon} = template;
-    const plot = PlotSize[template.Plot as number];
-    const rank = RankName[template.Rank as number];
-    const data = JSON.parse(template.Data as string);
-    res.send({name,description,owner,icon,plot,rank,data});
+    // const template = await DB.templates.findFirst({where: {ID: req.body.id}});
+    // if(template == null) { res.status(404).send(); return; }
+    // const {Name: name, Description: description, Owner: owner, Icon: icon} = template;
+    // const plot = PlotSize[template.Plot as number];
+    // const rank = RankName[template.Rank as number];
+    // const data = JSON.parse(template.Data as string);
+    // res.send({name,description,owner,icon,plot,rank,data});
 });
 
 const TemplateSchema = z.object({
@@ -67,7 +92,7 @@ APP.post('/upload', auth, json(), async (req, res) => {
     if(!template.success) { res.status(400).send(); return; }
     const {id: ID, name: Name, lore: Description, author: Owner, material: Icon, plotsize: Plot, rank: Rank, data } = template.data;
     await remove(ID);
-    await DB.templates.create({data: {ID,Name,Description,Owner,Icon,Plot,Rank, Data: JSON.stringify(data)}});
+    // await DB.templates.create({data: {ID,Name,Description,Owner,Icon,Plot,Rank, Data: JSON.stringify(data)}});
     res.send();
 });
 APP.post('/remove', auth, json(), (req, res) => {
@@ -77,7 +102,7 @@ APP.post('/remove', auth, json(), (req, res) => {
 
 async function remove(id: number) {
     try {
-        await DB.templates.delete({where: {ID: id}});
+        // await DB.templates.delete({where: {ID: id}});
         return true;
     }
     catch {
