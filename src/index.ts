@@ -86,8 +86,13 @@ APP.post('/upload', auth, json(), async (req, res) => {
     const template = TemplateSchema.safeParse(req.body);
     if(!template.success) { res.status(400).send(); return; }
     const {id: ID, name: Name, lore: Description, author: Owner, material: Icon, plotsize: Plot, rank: Rank, data } = template.data;
-    // await remove(ID);
-    // await templates.create({ID,Name,Description,Owner,Icon,Plot,Rank, Data: JSON.stringify(data)});
+    const dbtemplate = (await templates.findOne({where: {ID}}))?.get();
+    const storedata = {ID,Name,Description,Owner,Icon,Plot,Rank, Data: JSON.stringify(data)}
+    if(dbtemplate == null) {
+        await templates.create(storedata);
+    } else {
+        templates.update(storedata,{'where':{ID}});
+    }
     res.send();
 });
 APP.post('/remove', auth, json(), (req, res) => {
