@@ -25,99 +25,103 @@ const templates = DB.define('templates',{
     Rank: DataTypes.TINYINT,
     Data: DataTypes.STRING,
 });
-await DB.sync();
-const APP = Express();
+(async function () {
+    
+    await DB.sync();
+    const APP = Express();
+    
+    enum PlotSize {
+        "Basic",
+        "Large",
+        "Massive",
+    }
+    
+    enum RankName {
+        "None",
+        "Noble",
+        "Mythic",
+        "Overlord",
+    }
+    
+    APP.get('/', async (_req, res) => {
+        const data = await templates.findAll();
+        res.send(Object.fromEntries(data.map(t => {
+            const {ID, Name: name, Description: description, Owner: owner, Icon: icon, Category: category} = t.get();
+            const plot = PlotSize[t.get().Plot as number];
+            const rank = RankName[t.get().Rank as number];
+            return [ID, {name, description, owner, plot, rank, icon, category}]
+        })));
+    });
 
-enum PlotSize {
-    "Basic",
-    "Large",
-    "Massive",
-}
+    APP.get('/:id', urlencoded({'extended': true}), async (req,res) => {
+        const id = req.params.id
+        if(id.match(/^\d+$/) == null) { res.status(400).send('ID is a number'); return; }
+        const ID = Number(id);
+        const template = (await templates.findOne({where: {ID}}))?.get();
+        if(template == null) { res.status(404).send(); return; }
+        console.log(template);
+        const {Name: name, Description: description, Owner: owner, Icon: icon, Category: category} = template;
+        const plot = PlotSize[template.Plot as number];
+        const rank = RankName[template.Rank as number];
+        const data = JSON.parse(template.Data as string);
+        res.send({name,description,owner,icon,plot,rank,category,data});
+    });
 
-enum RankName {
-    "None",
-    "Noble",
-    "Mythic",
-    "Overlord",
-}
+    const TemplateSchema = z.object({
+        plotsize:    z.number().min(0).max( 4),
+        category:    z.string(),
+        rank:        z.number().min(0).max( 4),
+        author:      z.string().min(3).max(16),
+        name:        z.string(),
+        lore:        z.string(),
+        material:    z.string(),
+        id:          z.number().min(0),
+        data:        z.object({
+            author:     z.string(),
+            name:       z.string(),
+            version:    z.number().min(0),
+            code:       z.string()
+        })
+    });
 
-APP.get('/', async (_req, res) => {
-    const data = await templates.findAll();
-    res.send(Object.fromEntries(data.map(t => {
-        const {ID, Name: name, Description: description, Owner: owner, Icon: icon, Category: category} = t.get();
-        const plot = PlotSize[t.get().Plot as number];
-        const rank = RankName[t.get().Rank as number];
-        return [ID, {name, description, owner, plot, rank, icon, category}]
-    })));
-});
-APP.get('/:id', urlencoded({'extended': true}), async (req,res) => {
-    const id = req.params.id
-    if(id.match(/^\d+$/) == null) { res.status(400).send('ID is a number'); return; }
-    const ID = Number(id);
-    const template = (await templates.findOne({where: {ID}}))?.get();
-    if(template == null) { res.status(404).send(); return; }
-    console.log(template);
-    const {Name: name, Description: description, Owner: owner, Icon: icon, Category: category} = template;
-    const plot = PlotSize[template.Plot as number];
-    const rank = RankName[template.Rank as number];
-    const data = JSON.parse(template.Data as string);
-    res.send({name,description,owner,icon,plot,rank,category,data});
-});
+    function auth(req : Request, res : Response, next : NextFunction) {
+        if(req.headers['user-agent']?.match(/DiamondFire\/\d.\d+ \(((21220)|(43780)), [a-zA-Z0-9_]{3,16}\)/) == null) { res.status(403).send(); return; }
+        if(!(req.ip === '::1' || req.ip.includes('54.39.29.75'))) { res.status(403).send(); return; }
+        next();
+    }
+    APP.post('/upload', auth, json(), async (req, res) => {
+        const template = TemplateSchema.safeParse(req.body);
+        if(!template.success) { res.status(400).send(); return; }
+        const {id: ID, name: Name, lore: Description, author: Owner, category: Category, material: Icon, plotsize: Plot, rank: Rank, data } = template.data;
+        const DBTemplate = (await templates.findOne({where: {ID}}))?.get();
+        const storeData = {ID,Name,Description,Owner,Icon,Plot,Rank,Category, Data: JSON.stringify(data)}
+        if(DBTemplate == null) {
+            await templates.create(storeData);
+        } else {
+            templates.update(storeData,{'where':{ID}});
+        }
+        res.send();
+    });
+    APP.post('/remove', auth, json(), (req, res) => {
+        remove(req.body.id);
+        res.send();
+    });
 
-const TemplateSchema = z.object({
-    plotsize:    z.number().min(0).max( 4),
-    category:    z.string(),
-    rank:        z.number().min(0).max( 4),
-    author:      z.string().min(3).max(16),
-    name:        z.string(),
-    lore:        z.string(),
-    material:    z.string(),
-    id:          z.number().min(0),
-    data:        z.object({
-        author:     z.string(),
-        name:       z.string(),
-        version:    z.number().min(0),
-        code:       z.string()
+    async function remove(id: number) {
+        try {
+            await templates.destroy({where: {ID: id}});
+            return true;
+        }
+        catch {
+            return false;
+        }
+    }
+
+    process.on('uncaughtException', e => {
+        console.error(e);
     })
-});
 
-function auth(req : Request, res : Response, next : NextFunction) {
-    if(req.headers['user-agent']?.match(/DiamondFire\/\d.\d+ \(((21220)|(43780)), [a-zA-Z0-9_]{3,16}\)/) == null) { res.status(403).send(); return; }
-    if(!(req.ip === '::1' || req.ip.includes('54.39.29.75'))) { res.status(403).send(); return; }
-    next();
-}
-APP.post('/upload', auth, json(), async (req, res) => {
-    const template = TemplateSchema.safeParse(req.body);
-    if(!template.success) { res.status(400).send(); return; }
-    const {id: ID, name: Name, lore: Description, author: Owner, category: Category, material: Icon, plotsize: Plot, rank: Rank, data } = template.data;
-    const DBTemplate = (await templates.findOne({where: {ID}}))?.get();
-    const storeData = {ID,Name,Description,Owner,Icon,Plot,Rank,Category, Data: JSON.stringify(data)}
-    if(DBTemplate == null) {
-        await templates.create(storeData);
-    } else {
-        templates.update(storeData,{'where':{ID}});
-    }
-    res.send();
-});
-APP.post('/remove', auth, json(), (req, res) => {
-    remove(req.body.id);
-    res.send();
-});
-
-async function remove(id: number) {
-    try {
-        await templates.destroy({where: {ID: id}});
-        return true;
-    }
-    catch {
-        return false;
-    }
-}
-
-process.on('uncaughtException', e => {
-    console.error(e);
-})
-
-APP.listen(PORT, () => {
-    console.log(`App listening at port ${PORT}`);
-});
+    APP.listen(PORT, () => {
+        console.log(`App listening at port ${PORT}`);
+    });
+})()

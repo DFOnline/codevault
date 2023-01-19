@@ -2,7 +2,6 @@
   "name": "codevault",
   "version": "1.0.0",
   "description": "DiamondFire CodeVault as an API",
-  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "test": "tsc && node dist/index.js"
