@@ -17,10 +17,13 @@ const templates = DB.define('templates',{
         primaryKey: true
     },
     Name: DataTypes.STRING,
+    Description: DataTypes.STRING,
     Owner: DataTypes.STRING,
     Icon: DataTypes.STRING,
+    Category: DataTypes.STRING,
     Plot: DataTypes.TINYINT,
     Rank: DataTypes.TINYINT,
+    Data: DataTypes.STRING,
 });
 await DB.sync();
 const APP = Express();
@@ -41,29 +44,30 @@ enum RankName {
 APP.get('/', async (_req, res) => {
     const data = await templates.findAll();
     res.send(Object.fromEntries(data.map(t => {
-        const {ID, Name: name, Description: description, Owner: owner, Icon: icon} = t.get();
+        const {ID, Name: name, Description: description, Owner: owner, Icon: icon, Category: category} = t.get();
         const plot = PlotSize[t.get().Plot as number];
         const rank = RankName[t.get().Rank as number];
-        return [ID, {name, description, owner, plot, rank, icon}]
+        return [ID, {name, description, owner, plot, rank, icon, category}]
     })));
 });
 APP.get('/:id', urlencoded({'extended': true}), async (req,res) => {
-    const ID = req.params.id;
-    if(ID == null) { res.status(400).send('No ID'); return; }
+    const id = req.params.id
+    if(id.match(/^\d+$/) == null) { res.status(400).send('ID is a number'); return; }
+    const ID = Number(id);
     const template = (await templates.findOne({where: {ID}}))?.get();
     if(template == null) { res.status(404).send(); return; }
     console.log(template);
-    const {Name: name, Description: description, Owner: owner, Icon: icon} = template;
+    const {Name: name, Description: description, Owner: owner, Icon: icon, Category: category} = template;
     const plot = PlotSize[template.Plot as number];
     const rank = RankName[template.Rank as number];
     const data = JSON.parse(template.Data as string);
-    res.send({name,description,owner,icon,plot,rank,data});
+    res.send({name,description,owner,icon,plot,rank,category,data});
 });
 
 const TemplateSchema = z.object({
-    plotsize:    z.number().min(0).max(4 ),
+    plotsize:    z.number().min(0).max( 4),
     category:    z.string(),
-    rank:        z.number().min(0).max(4 ),
+    rank:        z.number().min(0).max( 4),
     author:      z.string().min(3).max(16),
     name:        z.string(),
     lore:        z.string(),
@@ -85,13 +89,13 @@ function auth(req : Request, res : Response, next : NextFunction) {
 APP.post('/upload', auth, json(), async (req, res) => {
     const template = TemplateSchema.safeParse(req.body);
     if(!template.success) { res.status(400).send(); return; }
-    const {id: ID, name: Name, lore: Description, author: Owner, material: Icon, plotsize: Plot, rank: Rank, data } = template.data;
-    const dbtemplate = (await templates.findOne({where: {ID}}))?.get();
-    const storedata = {ID,Name,Description,Owner,Icon,Plot,Rank, Data: JSON.stringify(data)}
-    if(dbtemplate == null) {
-        await templates.create(storedata);
+    const {id: ID, name: Name, lore: Description, author: Owner, category: Category, material: Icon, plotsize: Plot, rank: Rank, data } = template.data;
+    const DBTemplate = (await templates.findOne({where: {ID}}))?.get();
+    const storeData = {ID,Name,Description,Owner,Icon,Plot,Rank,Category, Data: JSON.stringify(data)}
+    if(DBTemplate == null) {
+        await templates.create(storeData);
     } else {
-        templates.update(storedata,{'where':{ID}});
+        templates.update(storeData,{'where':{ID}});
     }
     res.send();
 });
