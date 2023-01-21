@@ -3,6 +3,9 @@
         "outDir": "dist",
         "noImplicitAny": true,
         "strict": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "module": "ES2022",
+        "target": "ES2022",
+        "moduleResolution": "node",
     }
 }
