@@ -107,6 +107,11 @@ APP.post('/remove', auth, json(), (req, res) => {
     res.send();
 });
 
+APP.post('/debug', (req,res) => {
+    console.log(req.headers['user-agent'], req.ip);
+    res.send()
+})
+
 async function remove(id: number) {
     try {
         await templates.destroy({where: {ID: id}});
