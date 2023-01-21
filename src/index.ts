@@ -86,7 +86,7 @@ const TemplateSchema = z.object({
 
 function auth(req : Request, res : Response, next : NextFunction) {
     if(req.headers['user-agent']?.match(/DiamondFire\/\d.\d+ \(((21220)|(43780)), [a-zA-Z0-9_]{3,16}\)/) == null) { console.log(req.headers['user-agent']); res.status(403).send(); return; }
-    if(!(req.ip === '::1' || req.ip.includes('54.39.29.75'))) { console.log(req.ip); /* Only DF ip should ever get here. This serves if there is an unexpected and stop spamming my database please */ res.status(403).send(); return; }
+    if(!(req.ip === '::1' || req.ip.includes('54.39.29.75'))) { console.log(req.ip); /* Only DF ip should ever get here. This serves if there is an unexpected ip from df and stop spamming my database please */ res.status(403).send(); return; }
     next();
 }
 APP.post('/upload', auth, json(), async (req, res) => {
