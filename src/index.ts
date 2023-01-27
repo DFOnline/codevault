@@ -24,6 +24,7 @@ const templates = DB.define('templates',{
     Data: DataTypes.STRING,
 });
 
+const PORT = 80;
     
 await DB.sync();
 const APP = Express();
@@ -124,7 +125,8 @@ process.on('uncaughtException', e => {
     console.error(e);
 })
 
+APP.listen(PORT, () => {
+    console.log(`App listening at port ${PORT}`);
+});
+
 export default APP;
-// APP.listen(PORT, () => {
-//     console.log(`App listening at port ${PORT}`);
-// });
