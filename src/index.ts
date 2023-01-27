@@ -2,8 +2,6 @@ import Express, { json, NextFunction, Request, Response, urlencoded } from 'expr
 import { Sequelize, DataTypes } from 'sequelize';
 import { z } from 'zod';
 
-const PORT = 8000;
-
 // CREATE TABLE Templates (ID int NOT NULL PRIMARY KEY, Name varchar(32), Description varchar, Owner varchar(16), Icon varchar(32), Plot int, Rank int, Data varchar);
 const DB  = new Sequelize({
     dialect: 'sqlite',
@@ -126,6 +124,7 @@ process.on('uncaughtException', e => {
     console.error(e);
 })
 
-APP.listen(PORT, () => {
-    console.log(`App listening at port ${PORT}`);
-});
+export default APP;
+// APP.listen(PORT, () => {
+//     console.log(`App listening at port ${PORT}`);
+// });
